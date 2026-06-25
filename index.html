@@ -1,68 +1,74 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>吴老师心情指数监控</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}.card{background:#fff;border-radius:24px;padding:48px 40px 40px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.15);text-align:center}.title{font-size:20px;font-weight:600;color:#333;margin-bottom:20px;letter-spacing:1px}.mood-display{margin-bottom:32px}.mood-emoji{font-size:80px;line-height:1;margin-bottom:8px;transition:transform .3s}.mood-number{font-size:72px;font-weight:800;color:#333;line-height:1;margin-bottom:4px;transition:color .3s}.mood-label{font-size:18px;color:#666;font-weight:500}.mood-bar-wrap{margin:28px 0 32px}.mood-bar-labels{display:flex;justify-content:space-between;font-size:12px;color:#999;margin-bottom:6px;padding:0 2px}.mood-bar{height:8px;border-radius:4px;background:linear-gradient(to right,#ef4444,#f59e0b,#eab308,#84cc16,#22c55e);position:relative}.mood-bar-dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid #333;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:left .5s cubic-bezier(.34,1.56,.64,1)}.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px}.info-item{text-align:center}.info-value{font-size:22px;font-weight:700;color:#222;line-height:1.3}.info-label{font-size:13px;color:#888;margin-top:2px}.change-up{color:#dc2626}.change-down{color:#16a34a}.change-flat{color:#666}.update-time{margin-top:28px;font-size:12px;color:#bbb}.loading{display:flex;align-items:center;justify-content:center;gap:8px;color:#888;font-size:16px}.dot-pulse::after{content:'';animation:dots 1.5s steps(4,end) infinite}@keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}.status-tag{display:inline-block;font-size:12px;padding:4px 12px;border-radius:12px;margin-bottom:24px}.status-open{background:#fef2f2;color:#dc2626}.status-closed{background:#f1f5f9;color:#64748b}</style></head><body>
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>吴老师心情指数监控</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}.card{background:#fff;border-radius:24px;padding:48px 40px 40px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.15);text-align:center}.title{font-size:20px;font-weight:600;color:#333;margin-bottom:20px;letter-spacing:1px}.emoji{font-size:80px;line-height:1;margin-bottom:8px}.num{font-size:72px;font-weight:800;color:#333;line-height:1;margin-bottom:4px}.lbl{font-size:18px;color:#666;font-weight:500;margin-bottom:28px}.bar-wrap{margin:28px 0 32px}.bar-lbl{display:flex;justify-content:space-between;font-size:12px;color:#999;margin-bottom:6px;padding:0 2px}.bar{height:8px;border-radius:4px;background:linear-gradient(to right,#ef4444,#f59e0b,#eab308,#84cc16,#22c55e);position:relative}.dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid #333;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:left .5s cubic-bezier(.34,1.56,.64,1)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px}.item{text-align:center}.val{font-size:22px;font-weight:700;color:#222;line-height:1.3}.label{font-size:13px;color:#888;margin-top:2px}.up{color:#dc2626}.down{color:#16a34a}.flat{color:#666}.time{margin-top:28px;font-size:12px;color:#bbb}.spin{display:flex;align-items:center;justify-content:center;gap:8px;color:#888;font-size:16px}.spin .d::after{content:'';animation:ds 1.5s steps(4,end) infinite}@keyframes ds{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}.tag{display:inline-block;font-size:12px;padding:4px 12px;border-radius:12px;margin-bottom:24px}.open{background:#fef2f2;color:#dc2626}.shut{background:#f1f5f9;color:#64748b}</style></head><body>
 <div class="card">
 <div class="title">📊 吴老师心情指数监控</div>
-<div id="z"></div>
-<div class="update-time" id="t"></div>
+<div id="z"><div class="spin"><span class="d">加载中</span></div></div>
+<div class="time" id="t"></div>
 </div>
 <script>
 (function(){
-var _=['getElementById','innerHTML','textContent','padStart','toFixed'];
-var A='/api';
+var T='http://qt.gtimg.cn/q=sh000001';
 
-async function g(){
-  var r=await fetch(A),j=await r.json();
-  return j;
-}
-
-function c(n){
-  if(n>=2)return 5;
-  if(n>=1)return 4;
-  if(n>-1)return 3;
-  if(n>-2)return 2;
-  return 1;
-}
-
-function d(n){
-  var o={5:['😄','非常好'],4:['🙂','不错'],3:['😐','一般'],2:['😕','不太好'],1:['😞','很差']};
-  return o[n];
-}
-
-function h(n){
-  var o={5:'#22c55e',4:'#84cc16',3:'#eab308',2:'#f59e0b',1:'#ef4444'};
-  return o[n];
-}
-
-function tr(){
-  var n=new Date();
-  var dy=n.getDay(),hr=n.getHours(),mn=n.getMinutes(),t=hr*60+mn;
-  if(dy===0||dy===6)return !1;
+function isTrade(){
+  var n=new Date(),d=n.getDay(),h=n.getHours(),m=n.getMinutes(),t=h*60+m;
+  if(d===0||d===6)return !1;
   return(t>=565&&t<=695)||(t>=775&&t<=905);
 }
 
-function rn(level,price,pct,date,time){
-  var m=d(level),cl=h(level);
-  var dp=5+(level-1)*22.5;
-  var cs=pct>0?'change-up':(pct<0?'change-down':'change-flat');
-  var sg=pct>0?'+':'';
-  var trading=tr();
-  var tag=trading?'<span class="status-tag status-open">● 交易中</span>':'<span class="status-tag status-closed">○ 已收盘</span>';
-  var a=document[_('0x0')]('z');
-  a[_('0x1')]=tag+'<div class="mood-display"><div class="mood-emoji">'+m[0]+'</div><div class="mood-number" style="color:'+cl+'">'+level+'</div><div class="mood-label">'+m[1]+'</div></div><div class="mood-bar-wrap"><div class="mood-bar-labels"><span>😞 1</span><span>😕 2</span><span>😐 3</span><span>🙂 4</span><span>😄 5</span></div><div class="mood-bar"><div class="mood-bar-dot" style="left:'+dp+'%;border-color:'+cl+'"></div></div></div><div class="info-grid"><div class="info-item"><div class="info-label">上证指数</div><div class="info-value">'+price[_('0x4')](2)+'</div></div><div class="info-item"><div class="info-label">涨跌幅</div><div class="info-value '+cs+'">'+sg+pct[_('0x4')](2)+'%</div></div></div>';
+function calcMood(pct){
+  if(pct>=2)return 5;
+  if(pct>=1)return 4;
+  if(pct>-1)return 3;
+  if(pct>-2)return 2;
+  return 1;
 }
 
+var moodMap={
+  5:['😄','非常好','#22c55e'],
+  4:['🙂','不错','#84cc16'],
+  3:['😐','一般','#eab308'],
+  2:['😕','不太好','#f59e0b'],
+  1:['😞','很差','#ef4444']
+};
+
 async function up(){
-  var t=document[_('0x0')]('t');
+  var te=document.getElementById('t');
   try{
-    var dt=await g();
-    if(!dt||dt.price===undefined){
-      t[_('0x2')]='数据获取失败，稍后重试';
-      return;
-    }
-    var mood=c(dt.pct);
-    rn(mood,dt.price,dt.pct,dt.date,dt.time);
-    t[_('0x2')]='更新于 '+dt.date+' '+dt.time;
+    var r=await fetch(T);
+    var raw=await r.text();
+    var parts=raw.split('~');
+    if(parts.length<35){te.textContent='数据格式异常';return;}
+
+    var price=parseFloat(parts[3]);       // 最新价
+    var pct=parseFloat(parts[32]);        // 涨跌幅%
+    var ts=parts[30];                     // 20260625160818
+
+    if(isNaN(price)||isNaN(pct)){te.textContent='数据解析失败';return;}
+
+    var mood=calcMood(pct);
+    var m=moodMap[mood];
+    var dp=5+(mood-1)*22.5;
+    var cl=pct>0?'up':(pct<0?'down':'flat');
+    var sg=pct>0?'+':'';
+    var tag=isTrade()?'<span class="tag open">● 交易中</span>':'<span class="tag shut">○ 已收盘</span>';
+    var tstr=ts.substring(0,4)+'-'+ts.substring(4,6)+'-'+ts.substring(6,8)+' '+ts.substring(8,10)+':'+ts.substring(10,12)+':'+ts.substring(12,14);
+
+    document.getElementById('z').innerHTML=
+      tag+
+      '<div class="emoji">'+m[0]+'</div>'+
+      '<div class="num" style="color:'+m[2]+'">'+mood+'</div>'+
+      '<div class="lbl">'+m[1]+'</div>'+
+      '<div class="bar-wrap">'+
+        '<div class="bar-lbl"><span>😞 1</span><span>😕 2</span><span>😐 3</span><span>🙂 4</span><span>😄 5</span></div>'+
+        '<div class="bar"><div class="dot" style="left:'+dp+'%;border-color:'+m[2]+'"></div></div>'+
+      '</div>'+
+      '<div class="grid">'+
+        '<div class="item"><div class="label">上证指数</div><div class="val">'+price.toFixed(2)+'</div></div>'+
+        '<div class="item"><div class="label">涨跌幅</div><div class="val '+cl+'">'+sg+pct.toFixed(2)+'%</div></div>'+
+      '</div>';
+
+    te.textContent='更新于 '+tstr;
   }catch(e){
-    t[_('0x2')]='网络异常，稍后重试';
+    te.textContent='网络异常，稍后重试';
   }
 }
 
