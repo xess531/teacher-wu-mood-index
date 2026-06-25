@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>吴老师心情指数监控</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 24px;
+    padding: 48px 40px 40px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    text-align: center;
+  }
+
+  .title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+  }
+
+  .mood-display {
+    margin-bottom: 32px;
+  }
+
+  .mood-emoji {
+    font-size: 80px;
+    line-height: 1;
+    margin-bottom: 8px;
+    transition: transform 0.3s ease;
+  }
+
+  .mood-number {
+    font-size: 72px;
+    font-weight: 800;
+    color: #333;
+    line-height: 1;
+    margin-bottom: 4px;
+    transition: color 0.3s ease;
+  }
+
+  .mood-label {
+    font-size: 18px;
+    color: #666;
+    font-weight: 500;
+  }
+
+  .mood-bar-wrap {
+    margin: 28px 0 32px;
+  }
+
+  .mood-bar-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 6px;
+    padding: 0 2px;
+  }
+
+  .mood-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(to right, #ef4444, #f59e0b, #eab308, #84cc16, #22c55e);
+    position: relative;
+  }
+
+  .mood-bar-dot {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #333;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 8px;
+  }
+
+  .info-item {
+    text-align: center;
+  }
+
+  .info-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #222;
+    line-height: 1.3;
+  }
+
+  .info-label {
+    font-size: 13px;
+    color: #888;
+    margin-top: 2px;
+  }
+
+  .change-up { color: #dc2626; }
+  .change-down { color: #16a34a; }
+  .change-flat { color: #666; }
+
+  .update-time {
+    margin-top: 28px;
+    font-size: 12px;
+    color: #bbb;
+  }
+
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #888;
+    font-size: 16px;
+  }
+
+  .loading .dot-pulse::after {
+    content: '';
+    animation: dots 1.5s steps(4, end) infinite;
+  }
+
+  @keyframes dots {
+    0%   { content: ''; }
+    25%  { content: '.'; }
+    50%  { content: '..'; }
+    75%  { content: '...'; }
+  }
+
+  .status-tag {
+    display: inline-block;
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+  }
+  .status-open  { background: #fef2f2; color: #dc2626; }
+  .status-closed { background: #f1f5f9; color: #64748b; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="title">📊 吴老师心情指数监控</div>
+
+  <div id="mood-area">
+    <div class="loading"><span class="dot-pulse">加载中</span></div>
+  </div>
+
+  <div class="update-time" id="update-time"></div>
+</div>
+
+<script>
+(async function() {
+  // ── 抓取上证指数（始终返回最新行情，含盘前日/收盘后日） ──
+  const API = '/api';
+
+  async function fetchIndex() {
+    const r = await fetch(API);
+    const d = await r.json();
+    return d.data;
+  }
+
+  // ── 仅用于显示"交易中/已收盘"标签，不阻止心情显示 ──
+  function isTradingNow() {
+    const now = new Date();
+    const day = now.getDay();
+    if (day === 0 || day === 6) return false;
+    const t = now.getHours() * 60 + now.getMinutes();
+    return (t >= 565 && t <= 695) || (t >= 775 && t <= 905);
+  }
+
+  // ── 心情指数计算 ──
+  function calcMood(pct) {
+    if (pct >= 2)   return 5;
+    if (pct >= 1)   return 4;
+    if (pct > -1)   return 3;
+    if (pct > -2)   return 2;
+    return 1;
+  }
+
+  function moodData(level) {
+    const map = {
+      5: { emoji: '😄', label: '非常好' },
+      4: { emoji: '🙂', label: '不错'   },
+      3: { emoji: '😐', label: '一般'   },
+      2: { emoji: '😕', label: '不太好' },
+      1: { emoji: '😞', label: '很差'   },
+    };
+    return map[level];
+  }
+
+  function moodColor(level) {
+    const map = { 5: '#22c55e', 4: '#84cc16', 3: '#eab308', 2: '#f59e0b', 1: '#ef4444' };
+    return map[level];
+  }
+
+  function fmtTime(ts) {
+    const d = new Date(ts);
+    return d.getFullYear() + '-' +
+      String(d.getMonth()+1).padStart(2,'0') + '-' +
+      String(d.getDate()).padStart(2,'0') + ' ' +
+      String(d.getHours()).padStart(2,'0') + ':' +
+      String(d.getMinutes()).padStart(2,'0') + ':' +
+      String(d.getSeconds()).padStart(2,'0');
+  }
+
+  // ── 渲染（始终显示心情，不因收盘隐藏） ──
+  function renderMood(level, price, pct) {
+    const d = moodData(level);
+    const cl = moodColor(level);
+    const dotPct = 5 + (level - 1) * 22.5;
+    const cls = pct > 0 ? 'change-up' : (pct < 0 ? 'change-down' : 'change-flat');
+    const sign = pct > 0 ? '+' : '';
+    const tag = isTradingNow()
+      ? '<span class="status-tag status-open">● 交易中</span>'
+      : '<span class="status-tag status-closed">○ 已收盘</span>';
+
+    const area = document.getElementById('mood-area');
+    area.innerHTML = `
+      ${tag}
+      <div class="mood-display">
+        <div class="mood-emoji">${d.emoji}</div>
+        <div class="mood-number" style="color:${cl}">${level}</div>
+        <div class="mood-label">${d.label}</div>
+      </div>
+
+      <div class="mood-bar-wrap">
+        <div class="mood-bar-labels">
+          <span>😞 1</span><span>😕 2</span><span>😐 3</span><span>🙂 4</span><span>😄 5</span>
+        </div>
+        <div class="mood-bar">
+          <div class="mood-bar-dot" style="left:${dotPct}%;border-color:${cl}"></div>
+        </div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">上证指数</div>
+          <div class="info-value">${price.toFixed(2)}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">涨跌幅</div>
+          <div class="info-value ${cls}">${sign}${pct.toFixed(2)}%</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ── 主流程 ──
+  async function update() {
+    const timeEl = document.getElementById('update-time');
+    try {
+      const data = await fetchIndex();
+      if (!data || data.f43 === undefined || data.f43 === '-') {
+        timeEl.textContent = '数据获取失败，将在下次刷新重试';
+        return;
+      }
+      const price = data.f43 / 100;
+      const pct = data.f170 / 100;
+      const ts = data.f124 ? data.f124 * 1000 : Date.now();
+      const mood = calcMood(pct);
+      renderMood(mood, price, pct);
+      timeEl.textContent = '更新于 ' + fmtTime(ts);
+    } catch(e) {
+      timeEl.textContent = '网络异常，稍后重试';
+    }
+  }
+
+  await update();
+  setInterval(update, 60000);
+})();
+</script>
+
+</body>
+</html>
